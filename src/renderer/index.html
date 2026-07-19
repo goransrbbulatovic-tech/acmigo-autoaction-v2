@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+  <title>AutoAction Acmigo</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-state="idle">
+
+  <!-- ambijentalni sjaj koji reaguje na stanje -->
+  <div class="ambient" aria-hidden="true"></div>
+
+  <!-- ===== TITLE BAR ===== -->
+  <header class="titlebar">
+    <div class="tb-brand">
+      <img src="assets/logo.png" alt="" class="tb-logo" />
+      <span class="tb-title">AutoAction <span class="tb-accent">Acmigo</span></span>
+      <span class="tb-badge" id="stateBadge">Spreman</span>
+    </div>
+    <div class="tb-controls">
+      <button class="tb-btn" id="winMin" title="Umanji" aria-label="Umanji">
+        <svg viewBox="0 0 12 12"><line x1="2" y1="6" x2="10" y2="6"/></svg>
+      </button>
+      <button class="tb-btn" id="winMax" title="Uvećaj" aria-label="Uvećaj">
+        <svg viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7"/></svg>
+      </button>
+      <button class="tb-btn tb-close" id="winClose" title="Zatvori" aria-label="Zatvori">
+        <svg viewBox="0 0 12 12"><line x1="3" y1="3" x2="9" y2="9"/><line x1="9" y1="3" x2="3" y2="9"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- upozorenje ako nativni moduli nisu izgrađeni -->
+  <div class="native-warn" id="nativeWarn" hidden>
+    <strong>Nativni moduli nisu izgrađeni.</strong>
+    Pokreni <code>npm run rebuild</code> pa ponovo <code>npm start</code>.
+    <span id="nativeWarnDetail"></span>
+  </div>
+
+  <!-- ===== BODY ===== -->
+  <main class="app">
+
+    <!-- BIBLIOTEKA -->
+    <aside class="sidebar">
+      <div class="side-head">
+        <span class="side-title">Biblioteka</span>
+        <span class="side-count" id="libCount">0</span>
+      </div>
+
+      <div class="side-actions">
+        <button class="btn btn-ghost" id="btnImport" title="Uvezi makro iz fajla">
+          <svg class="ico" viewBox="0 0 20 20"><path d="M10 3v9m0 0l-3-3m3 3l3-3M4 15h12"/></svg>
+          Uvezi
+        </button>
+      </div>
+
+      <div class="lib-list" id="libList" role="list">
+        <!-- makroi se ubacuju ovdje -->
+      </div>
+
+      <div class="lib-empty" id="libEmpty">
+        <div class="lib-empty-art">◍</div>
+        <p>Nema sačuvanih makroa.<br>Snimi nešto i sačuvaj ga.</p>
+      </div>
+    </aside>
+
+    <!-- RADNI PROSTOR -->
+    <section class="workspace">
+
+      <!-- KONTROLNA PALUBA -->
+      <div class="deck">
+        <div class="deck-status">
+          <div class="pulse" id="pulse"><span class="pulse-dot"></span></div>
+          <div class="deck-meta">
+            <div class="deck-state" id="deckState">Spreman za snimanje</div>
+            <div class="deck-sub" id="deckSub">Pritisni Snimaj ili prečicu <kbd id="hkRecord">F6</kbd></div>
+          </div>
+        </div>
+
+        <div class="deck-stats">
+          <div class="stat"><span class="stat-val" id="statSteps">0</span><span class="stat-lbl">koraka</span></div>
+          <div class="stat"><span class="stat-val" id="statTime">0.0s</span><span class="stat-lbl">trajanje</span></div>
+          <div class="stat"><span class="stat-val" id="statLoop">—</span><span class="stat-lbl">petlja</span></div>
+        </div>
+
+        <div class="deck-buttons">
+          <button class="big-btn rec" id="btnRecord">
+            <span class="bb-ico"></span><span class="bb-lbl">Snimaj</span>
+          </button>
+          <button class="big-btn play" id="btnPlay" disabled>
+            <span class="bb-ico"></span><span class="bb-lbl">Pusti</span>
+          </button>
+          <button class="big-btn stop" id="btnStop" disabled>
+            <span class="bb-ico"></span><span class="bb-lbl">STOP</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- odbrojavanje / progres traka -->
+      <div class="progress-wrap" id="progressWrap" hidden>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText"></div>
+      </div>
+
+      <!-- TABOVI -->
+      <nav class="tabs">
+        <button class="tab active" data-tab="steps">Koraci</button>
+        <button class="tab" data-tab="settings">Podešavanja</button>
+        <button class="tab" data-tab="about">O programu</button>
+        <div class="tab-right">
+          <button class="btn btn-primary" id="btnSave" disabled>
+            <svg class="ico" viewBox="0 0 20 20"><path d="M4 4h9l3 3v9H4z"/><path d="M7 4v4h6"/><path d="M7 16v-4h6v4"/></svg>
+            Sačuvaj makro
+          </button>
+        </div>
+      </nav>
+
+      <!-- panel: koraci -->
+      <div class="panel active" data-panel="steps">
+        <div class="steps-head">
+          <span id="stepsTitle">Snimljeni koraci</span>
+          <span class="steps-legend">
+            <i class="dot k"></i>tastatura
+            <i class="dot m"></i>miš
+            <i class="dot w"></i>točkić
+          </span>
+        </div>
+        <div class="steps-tools" id="stepsTools" hidden>
+          <label class="edit-toggle">
+            <input type="checkbox" id="editMode" />
+            <span>Uredi korake</span>
+          </label>
+          <label class="edit-toggle" title="Prije puštanja sam pronađi/otvori aplikaciju u kojoj je makro snimljen">
+            <input type="checkbox" id="smartMode" />
+            <span>🎯 Pametno</span>
+          </label>
+          <label class="edit-toggle" title="Prilagodi klikove ako je prozor pomjeren ili druge veličine">
+            <input type="checkbox" id="followWin" />
+            <span>📐 Prati prozor</span>
+          </label>
+          <span class="ctx-name" id="ctxName"></span>
+          <span class="tools-spacer"></span>
+          <button class="mini" id="btnDesktopCtx" title="Ovaj makro počinje na desktopu">🖥️ Desktop</button>
+          <button class="mini" id="btnTestCtx" title="Probaj samo pripremu — bez puštanja koraka">Provjeri</button>
+          <button class="mini" id="btnGrabCtx" title="Zapamti u kojoj aplikaciji makro treba da radi">🎯 Zapamti aplikaciju</button>
+          <button class="mini" id="btnClearMoves" title="Ukloni sve pomjeraje miša — makro skače pravo na klikove">Ukloni pomjeraje</button>
+        </div>
+        <div class="steps-list" id="stepsList"></div>
+        <div class="steps-empty" id="stepsEmpty">
+          Ovdje se ispisuje šta radiš dok snimaš — svaki klik, potez i svako kucanje.
+        </div>
+      </div>
+
+      <!-- panel: podešavanja -->
+      <div class="panel" data-panel="settings">
+        <div class="settings-grid">
+          <div class="set-card">
+            <label class="set-label">Broj ponavljanja</label>
+            <div class="set-row">
+              <input type="number" min="1" max="99999" id="setRepeat" class="input" value="1" />
+              <label class="switch">
+                <input type="checkbox" id="setLoopForever" />
+                <span class="track"></span><span class="switch-lbl">Beskonačno</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="set-card">
+            <label class="set-label">Brzina reprodukcije <span class="set-val" id="speedVal">1.0×</span></label>
+            <input type="range" min="0.25" max="4" step="0.05" value="1" id="setSpeed" class="range" />
+          </div>
+
+          <div class="set-card">
+            <label class="set-label">Odbrojavanje prije puštanja <span class="set-val" id="cdVal">3s</span></label>
+            <input type="range" min="0" max="10" step="1" value="3" id="setCountdown" class="range" />
+          </div>
+
+          <div class="set-card">
+            <label class="set-label">Jačina skrolovanja <span class="set-val" id="scrollVal">100%</span></label>
+            <input type="range" min="25" max="300" step="5" value="100" id="setScroll" class="range" />
+            <p class="set-hint">100% = tačno onoliko koliko si skrolovao pri snimanju. Podesi samo ako neka aplikacija reaguje jače ili slabije.</p>
+          </div>
+
+          <div class="set-card">
+            <label class="set-label">Snimanje pokreta miša</label>
+            <div class="set-row">
+              <label class="switch">
+                <input type="checkbox" id="setCaptureMove" checked />
+                <span class="track"></span><span class="switch-lbl">Bilježi putanju miša</span>
+              </label>
+            </div>
+            <label class="set-sublabel">Gustina uzoraka <span class="set-val" id="throttleVal">16 ms</span></label>
+            <input type="range" min="4" max="60" step="1" value="16" id="setThrottle" class="range" />
+          </div>
+
+          <div class="set-card">
+            <label class="set-label">Prečice</label>
+            <div class="hk-grid">
+              <div class="hk"><span>Snimaj / Stop snimanja</span><kbd id="hkRec2">F6</kbd></div>
+              <div class="hk"><span>Pusti</span><kbd id="hkPlay2">F7</kbd></div>
+              <div class="hk"><span>STOP reprodukcije</span><kbd id="hkStop2">Esc</kbd></div>
+            </div>
+            <p class="set-hint">Prečice rade i kad je prozor u pozadini.</p>
+          </div>
+
+          <div class="set-card">
+            <label class="set-label">Sistemska traka</label>
+            <div class="set-row">
+              <label class="switch">
+                <input type="checkbox" id="setTray" />
+                <span class="track"></span><span class="switch-lbl">Pri minimiziranju (–) sakrij u tray</span>
+              </label>
+            </div>
+            <p class="set-hint">X uvijek potpuno zatvara program. Prečice makroa rade i dok je u tray-u.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- panel: o programu -->
+      <div class="panel" data-panel="about">
+        <div class="about">
+          <img src="assets/logo.png" class="about-logo" alt="" />
+          <h2>AutoAction <span class="tb-accent">Acmigo</span></h2>
+          <p class="about-ver" id="aboutVer">v1.0.0</p>
+          <p class="about-desc">
+            Profesionalni alat za automatizaciju miša i tastature. Snimi tačno ono što radiš —
+            klikove, poteze, kucanje u bilo kojoj aplikaciji — pa to pusti ponovo koliko god puta želiš.
+            Reprodukcija se prekida u sekundi prečicom <kbd>Esc</kbd>.
+          </p>
+          <ul class="about-feats">
+            <li>Globalno snimanje miša i tastature (radi u svakoj aplikaciji, ne samo u prozoru)</li>
+            <li>Trenutni STOP tokom reprodukcije</li>
+            <li>Ponavljanje, beskonačna petlja i podešavanje brzine</li>
+            <li>Odbrojavanje prije puštanja da stigneš prebaciti prozor</li>
+            <li>Biblioteka makroa — snimanje, uvoz i izvoz</li>
+            <li>Vlastita prečica za svaki makro — pokreni ga bilo kad, čak i iz tray-a</li>
+            <li>Rad iz sistemske trake i globalne prečice</li>
+          </ul>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- veliki countdown overlay -->
+  <div class="countdown" id="countdown" hidden><span id="countdownNum">3</span></div>
+
+  <!-- toast -->
+  <div class="toast" id="toast" hidden></div>
+
+  <!-- modal za ime makroa -->
+  <div class="modal-back" id="saveModal" hidden>
+    <div class="modal">
+      <h3>Sačuvaj makro</h3>
+      <input type="text" id="macroName" class="input" placeholder="Naziv makroa" maxlength="60" />
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="saveCancel">Otkaži</button>
+        <button class="btn btn-primary" id="saveConfirm">Sačuvaj</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- modal za prečicu makroa -->
+  <div class="modal-back" id="hotkeyModal" hidden>
+    <div class="modal">
+      <h3>Prečica za makro</h3>
+      <p class="hk-for" id="hkForName">—</p>
+      <div class="hk-capture" id="hkCapture" tabindex="0">Klikni ovdje pa pritisni tipku…</div>
+      <p class="set-hint">Npr. <kbd>F2</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd>. Radi i kad je program u tray-u.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="hkClear">Ukloni</button>
+        <button class="btn btn-ghost" id="hkCancel">Otkaži</button>
+        <button class="btn btn-primary" id="hkSave">Sačuvaj</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

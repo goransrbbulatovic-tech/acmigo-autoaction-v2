@@ -1,0 +1,75 @@
+{
+  "name": "autoaction-acmigo",
+  "productName": "AutoAction Acmigo",
+  "version": "1.0.0",
+  "description": "Moćan macro alat — snimanje i reprodukcija akcija miša i tastature sa vrhunskim interfejsom.",
+  "author": {
+    "name": "Acmigo"
+  },
+  "license": "MIT",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "rebuild": "electron-rebuild -f -w uiohook-napi,@nut-tree-fork/libnut",
+    "postinstall": "electron-builder install-app-deps",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:portable": "electron-builder --win portable"
+  },
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.6",
+    "uiohook-napi": "^1.5.4"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.0",
+    "electron": "^31.7.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.acmigo.autoaction",
+    "productName": "AutoAction Acmigo",
+    "copyright": "Copyright © 2025 Acmigo",
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/uiohook-napi/**",
+      "**/node_modules/@nut-tree-fork/**"
+    ],
+    "files": [
+      "src/**/*",
+      "build/icon.ico",
+      "build/tray.png",
+      "!**/*.py",
+      "!**/*.md"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AutoAction Acmigo",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    }
+  }
+}
