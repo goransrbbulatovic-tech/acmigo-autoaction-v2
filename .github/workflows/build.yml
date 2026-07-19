@@ -1,0 +1,60 @@
+name: Build Windows
+
+# Kada se pokreće:
+#  - ručno (dugme "Run workflow" u Actions kartici)
+#  - na svaki push na main granu
+#  - kada gurneš tag oblika v1.0.0 -> pravi i GitHub Release sa .exe fajlovima
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: write   # potrebno da bi mogao da napravi Release
+
+jobs:
+  build:
+    # VAŽNO: windows-2022 (Visual Studio 2022) — NE windows-latest.
+    # windows-latest sada nosi Visual Studio 2026 (v18), koji node-gyp ne prepoznaje,
+    # pa kompajliranje nativnih modula (uiohook-napi) puca. VS 2022 radi bez problema.
+    runs-on: windows-2022   # GitHub-ova Windows mašina kompajluje umjesto tebe
+
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Postavi Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instaliraj zavisnosti
+        run: npm install
+
+      - name: Prekompajliraj nativne module
+        run: npm run rebuild
+
+      - name: Napravi Windows instaler + portabilnu verziju
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Gotovi fajlovi se kače uz svaki build - skidaš ih iz Actions kartice
+      - name: Otpremi rezultate (Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoAction-Acmigo-Windows
+          path: |
+            release/*.exe
+          if-no-files-found: error
+
+      # Kada gurneš tag (npr. v1.0.0) - napravi Release i zakači .exe
+      - name: Napravi GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
